@@ -88,3 +88,44 @@ class TestRunnerTests(unittest.TestCase):
             self.assertEqual(run_tests.main(["--suite", "unit", "--suite", "unit", "--list"]), 0)
         self.assertEqual(discover.call_count, 1)
         self.assertEqual(Path(discover.call_args.args[0]).name, "unit")
+
+
+class ReportProblemsTests(unittest.TestCase):
+    def result_with_failure(self):
+        class Broken(unittest.TestCase):
+            def test_it(self):
+                self.assertEqual(1, 2, "values differ: a, b")
+
+        result = unittest.TestResult()
+        Broken("test_it").run(result)
+        return result
+
+    def report(self, env):
+        out, err = io.StringIO(), io.StringIO()
+        with patch.dict(run_tests.os.environ, env, clear=False), redirect_stdout(out), redirect_stderr(err):
+            run_tests.report_problems(self.result_with_failure())
+        return out.getvalue(), err.getvalue()
+
+    def test_failures_are_repeated_at_the_end(self):
+        out, err = self.report({"GITHUB_ACTIONS": "false"})
+        self.assertIn("1 test(s) did not pass", err)
+        self.assertIn("FAIL: ", err)
+        self.assertIn("test_it", err)
+        self.assertIn("values differ", err)
+        self.assertEqual(out, "")
+
+    def test_github_actions_gets_one_escaped_annotation_per_failure(self):
+        out, _err = self.report({"GITHUB_ACTIONS": "true"})
+        lines = [line for line in out.splitlines() if line.startswith("::error ")]
+        self.assertEqual(len(lines), 1)
+        title, message = lines[0][len("::error title="):].split("::", 1)
+        self.assertNotIn(":", title)
+        self.assertNotIn(",", title)
+        self.assertIn("%0A", message)
+        self.assertIn("values differ", message)
+
+    def test_nothing_is_printed_when_everything_passes(self):
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err):
+            run_tests.report_problems(unittest.TestResult())
+        self.assertEqual((out.getvalue(), err.getvalue()), ("", ""))

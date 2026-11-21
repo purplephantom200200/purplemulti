@@ -108,7 +108,40 @@ def main(argv=None) -> int:
             verbosity=2 if args.verbose else 1,
             failfast=args.failfast,
         ).run(unittest.TestSuite(tests))
+        report_problems(result)
         return 0 if result.wasSuccessful() else 1
+
+
+def _annotation(text: str, is_property: bool = False) -> str:
+    """Escape text for a GitHub Actions workflow command (::error title=...::message)."""
+    text = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    if is_property:
+        text = text.replace(":", "%3A").replace(",", "%2C")
+    return text
+
+
+def report_problems(result: unittest.TestResult) -> None:
+    """Repeat failures at the very end, where app output cannot bury them.
+
+    On GitHub Actions each one also becomes an error annotation, which shows on
+    the run page and can be read without opening the full log.
+    """
+    problems = [("ERROR", test, text) for test, text in result.errors]
+    problems += [("FAIL", test, text) for test, text in result.failures]
+    problems += [("UNEXPECTED SUCCESS", test, "") for test in result.unexpectedSuccesses]
+    if not problems:
+        return
+    print(f"\n{len(problems)} test(s) did not pass:", file=sys.stderr)
+    for kind, test, text in problems:
+        lines = [line for line in text.strip().splitlines() if line.strip()]
+        reason = lines[-1] if lines else kind
+        print(f"  {kind}: {test.id()}\n      {reason}", file=sys.stderr)
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            detail = "\n".join(lines[-25:])
+            title = _annotation(f"{kind} {test.id()}", is_property=True)
+            print(f"::error title={title}::{_annotation(detail)}")
+    sys.stderr.flush()
+    sys.stdout.flush()
 
 
 if __name__ == "__main__":
