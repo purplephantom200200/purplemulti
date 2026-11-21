@@ -1,19 +1,19 @@
-# Sécurité
+# Security
 
-PurpleMulti manipule des données sensibles : cookies de session Roblox, mots de
-passe enregistrés, notes. Signale une faille en privé pour qu'elle soit
-corrigée avant d'être rendue publique.
+PurpleMulti handles sensitive data: Roblox session cookies, saved passwords and
+notes. Please report vulnerabilities privately so they can be fixed before
+they are made public.
 
-## Signaler une faille
+## Reporting a vulnerability
 
-Utilise **Report a vulnerability** dans l'onglet
-[Security](https://github.com/purplephantom200200/purplemulti/security) du dépôt. Ces
-signalements restent privés. N'ouvre pas d'issue publique.
+Use **Report a vulnerability** in the repository's
+[Security](https://github.com/purplephantom200200/purplemulti/security) tab.
+These reports stay private. Do not open a public issue.
 
-Indique la version concernée, l'impact possible et les étapes pour reproduire.
+Include the affected version, the possible impact and the steps to reproduce.
 
-Si la faille vient du code d'origine et existe aussi dans
+If the issue comes from the original code and also exists in
 [Evanovar RAM](https://github.com/evanovar/RobloxAccountManager/security),
-signale-la aussi là-bas.
+please report it there as well.
 
-Seule la dernière version de la branche `perso` reçoit des correctifs.
+Only the latest version of the `perso` branch receives fixes.
