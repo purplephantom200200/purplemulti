@@ -70,7 +70,11 @@ def main(argv=None) -> int:
     with ExitStack() as stack:
         data_dir = stack.enter_context(tempfile.TemporaryDirectory(prefix="ram-tests-"))
         stack.enter_context(patch.object(app_paths, "get_data_dir", return_value=data_dir))
-        stack.enter_context(patch.dict(os.environ, {"QT_QPA_PLATFORM": "offscreen"}))
+        # The variable also covers code that resolves the folder itself and child processes,
+        # so no test can write into the real %LOCALAPPDATA%\PurpleMulti.
+        stack.enter_context(patch.dict(os.environ, {
+            "QT_QPA_PLATFORM": "offscreen", app_paths.DATA_DIR_ENV: data_dir,
+        }))
         loader = unittest.TestLoader()
         tests = []
         for name in dict.fromkeys(args.suite or SUITES):

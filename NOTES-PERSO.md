@@ -105,6 +105,7 @@ les paquets PySide6 se partagent des fichiers :
 | --- | --- | --- |
 | Styles | `src/utils/theme_styles.py` | Tous les composants, avec les variantes de boutons (`primary`, `ghost`, `danger`, `icon`) |
 | Briques de page | `src/utils/ui_kit.py` | Cartes, en-têtes de page, pastilles, lignes de réglage, `EmptyState`, `OptionCard`, `initials()` |
+| Icône | `assets/icon-source.png` | Image d'origine ; `uv run python scripts/make_icon.py [image.png]` régénère `icon.ico` et l'image du README |
 | Couleurs | `src/features/color_themes.py` | Palette `default` (Purple) et les 7 autres thèmes |
 | Thème actif | `src/utils/theme_runtime.py` | Jetons `@RAM_*@`, interrupteurs SVG, barre de titre Windows |
 

@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/purplemulti.png" width="256" alt="PurpleMulti"></p>
+
 # PurpleMulti
 
 **English** | [Français](README.fr.md)
