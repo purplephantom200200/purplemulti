@@ -951,10 +951,17 @@ class _ResizeHandle(QSizeGrip):
 
 TITLE_BAR_HEIGHT = 40
 MIN_WINDOW_SIZE = (920, 620)
-# Donation links shown on the Donations page, as (title, description, url).
+# Donation links shown on the Donations page, as (title, description, url, qr_image).
+# qr_image is a file in assets/ (bundled in the exe) or "" for none.
 # The page and its sidebar button only appear when this list is not empty.
-# Example: ("PayPal", "One-time donation through PayPal.", "https://paypal.me/<name>")
-DONATION_LINKS: list[tuple[str, str, str]] = []
+DONATION_LINKS: list[tuple[str, str, str, str]] = [
+    (
+        "PayPal",
+        "One-time donation with PayPal. Scan the code with your phone, or open the link.",
+        "https://www.paypal.com/qrcodes/managed/696ae54e-d761-4d97-baa1-f281fbc38f88",
+        "paypal-qr.png",
+    ),
+]
 SHOW_DONATIONS_PAGE = bool(DONATION_LINKS)
 # Community link (Discord server...) for the chat button under the sidebar.
 # The button is hidden while this is empty.
@@ -7693,7 +7700,7 @@ class AccountManagerUIQt(QMainWindow): # Main Window
         lay.setContentsMargins(*ui_kit.PAGE_MARGINS)
         lay.setSpacing(14)
         lay.addLayout(ui_kit.page_header(
-            "Support PurpleMulti",
+            "Support the creator",
             "If PurpleMulti saves you time, you can support its development.",
         ))
 
@@ -7721,17 +7728,33 @@ class AccountManagerUIQt(QMainWindow): # Main Window
             buttons.addWidget(open_btn)
             return buttons
 
-        for index, (title, description, url) in enumerate(DONATION_LINKS):
+        for index, (title, description, url, *extra) in enumerate(DONATION_LINKS):
             frame, card_lay = ui_kit.card()
             row = QHBoxLayout()
             row.setSpacing(16)
+            qr_name = extra[0] if extra else ""
+            qr = QPixmap(get_resource_path("assets", qr_name)) if qr_name else QPixmap()
+            if not qr.isNull():
+                code = QLabel()
+                code.setObjectName("donationQr")
+                code.setAccessibleName(f"{title} QR code")
+                # 200 px keeps the dense dots readable by a phone camera; sharp on scaled screens.
+                ratio = max(1.0, code.devicePixelRatioF())
+                side = round(200 * ratio)
+                sharp = qr.scaled(side, side, Qt.AspectRatioMode.KeepAspectRatio,
+                                  Qt.TransformationMode.SmoothTransformation)
+                sharp.setDevicePixelRatio(ratio)
+                code.setPixmap(sharp)
+                row.addWidget(code, 0, Qt.AlignmentFlag.AlignVCenter)
             text = QVBoxLayout()
             text.setSpacing(2)
+            text.addStretch(1)
             heading = QLabel(title)
             heading.setObjectName("sectionTitle")
             text.addWidget(heading)
             if description:
                 text.addWidget(ui_kit.caption(description))
+            text.addStretch(1)
             row.addLayout(text, 1)
             row.addLayout(_link_buttons(url, primary=index == 0))
             card_lay.addLayout(row)

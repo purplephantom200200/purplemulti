@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import patch
 
@@ -6,7 +7,7 @@ from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QWidget
 from utils import ui
 
 LINKS = [
-    ("PayPal", "One-time donation.", "https://paypal.me/example"),
+    ("PayPal", "One-time donation.", "https://paypal.me/example", "paypal-qr.png"),
     ("Ko-fi", "", "https://ko-fi.com/example"),
 ]
 
@@ -41,6 +42,20 @@ class DonationsPageTests(unittest.TestCase):
         with patch.object(ui.webbrowser, "open") as browser:
             self.buttons(panel, "Open")[1].click()
         browser.assert_called_once_with("https://ko-fi.com/example")
+
+    def test_a_card_can_show_its_qr_code(self):
+        panel = self.build(LINKS)
+        codes = [label for label in panel.findChildren(QLabel) if label.objectName() == "donationQr"]
+        self.assertEqual(len(codes), 1)
+        self.assertFalse(codes[0].pixmap().isNull())
+        self.assertEqual(codes[0].accessibleName(), "PayPal QR code")
+
+    def test_the_configured_paypal_link_is_shown(self):
+        self.assertTrue(ui.SHOW_DONATIONS_PAGE)
+        title, _description, url, qr = ui.DONATION_LINKS[0]
+        self.assertEqual(title, "PayPal")
+        self.assertTrue(url.startswith("https://www.paypal.com/"))
+        self.assertTrue(os.path.isfile(ui.get_resource_path("assets", qr)))
 
     def test_copy_puts_the_link_on_the_clipboard(self):
         panel = self.build(LINKS)
