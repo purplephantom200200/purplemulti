@@ -5,8 +5,19 @@ d'evanovar (branche `perso`). La licence GPL-3 et le copyright d'origine sont co
 
 ## Lancer
 
-Double-clic sur `Lancer PurpleMulti.cmd`. Les données sont dans
-`%LOCALAPPDATA%\PurpleMulti`, hors du dépôt.
+- **Comme une vraie app** : double-clic sur `Installer PurpleMulti.cmd`. Il
+  construit l'exe, l'installe dans `%LOCALAPPDATA%\Programs\PurpleMulti` et
+  crée un raccourci dans le menu Démarrer : PurpleMulti apparaît dans la
+  recherche Windows, et clic droit > « Épingler à la barre des tâches ».
+  Relance-le après chaque mise à jour du code. Options (dans un terminal) :
+  `--desktop` (raccourci sur le bureau), `--uninstall` (retire l'app, garde
+  les comptes).
+- **Depuis les sources** (pour tester un changement) : double-clic sur
+  `Lancer PurpleMulti.cmd`.
+
+Dans les deux cas, les données sont dans `%LOCALAPPDATA%\PurpleMulti`, hors du
+dépôt. Une ancienne copie portable qui a déjà ses comptes dans
+`AccountManagerData`, à côté de l'app, continue de les utiliser.
 
 Seuls les noms visibles ont changé. La classe `RobloxAccountManager`, le fichier
 `packaging/EvanovarRAM.spec` et les URL de l'updater gardent leur nom, pour que

@@ -35,11 +35,32 @@ DATA_DIR_ENV = "RAM_DATA_DIR"
 DATA_DIR_OPTION = "--data-dir"
 
 
+APP_DATA_FOLDER = "PurpleMulti"
+LEGACY_DATA_FOLDER = "AccountManagerData"
+_LEGACY_MARKERS = ("saved_accounts.json", "encryption_config.json")
+
+
+def default_data_dir() -> str:
+    """%LOCALAPPDATA%\PurpleMulti: the same folder for the installed exe and source runs."""
+    base = os.environ.get("LOCALAPPDATA", "").strip()
+    if not base:
+        base = os.path.join(os.path.expanduser("~"), "AppData", "Local")
+    return os.path.join(base, APP_DATA_FOLDER)
+
+
+def legacy_data_dir() -> str:
+    return os.path.join(get_project_root(), LEGACY_DATA_FOLDER)
+
+
 def resolve_data_dir() -> str:
     override = os.environ.get(DATA_DIR_ENV, "").strip()
     if override:
         return os.path.abspath(os.path.expandvars(os.path.expanduser(override)))
-    return os.path.join(get_project_root(), "AccountManagerData")
+    legacy = legacy_data_dir()
+    # A portable copy that already keeps its accounts next to the app goes on using them.
+    if any(os.path.isfile(os.path.join(legacy, marker)) for marker in _LEGACY_MARKERS):
+        return legacy
+    return default_data_dir()
 
 
 def get_data_dir() -> str:

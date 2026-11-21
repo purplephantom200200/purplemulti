@@ -51,14 +51,16 @@ Il faut Windows 10 ou 11, [Git](https://git-scm.com/) et
 [uv](https://docs.astral.sh/uv/). uv installe lui-même Python 3.15.
 
 ```powershell
-git clone https://github.com/bleathingman/purplemulti.git
+git clone https://github.com/purplephantom200200/purplemulti.git
 cd purplemulti
 ```
 
-Ensuite, double-clic sur **`Lancer PurpleMulti.cmd`**. Le script installe les
-dépendances au premier lancement et les met à jour aux suivants.
+Ensuite, double-clic sur **`Installer PurpleMulti.cmd`**. Il construit
+l'exécutable, l'installe pour ton compte Windows et l'ajoute au menu Démarrer :
+PurpleMulti se trouve alors dans la recherche Windows et s'épingle à la barre
+des tâches (clic droit > Épingler). Relance-le après une mise à jour.
 
-Pour un exécutable : `.\scripts\build.cmd`, qui produit `dist\PurpleMulti.exe`.
+Pour lancer depuis les sources sans installer : **`Lancer PurpleMulti.cmd`**.
 
 ## Données et confidentialité
 

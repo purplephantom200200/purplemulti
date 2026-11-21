@@ -7,7 +7,7 @@ corrigée avant d'être rendue publique.
 ## Signaler une faille
 
 Utilise **Report a vulnerability** dans l'onglet
-[Security](https://github.com/bleathingman/purplemulti/security) du dépôt. Ces
+[Security](https://github.com/purplephantom200200/purplemulti/security) du dépôt. Ces
 signalements restent privés. N'ouvre pas d'issue publique.
 
 Indique la version concernée, l'impact possible et les étapes pour reproduire.

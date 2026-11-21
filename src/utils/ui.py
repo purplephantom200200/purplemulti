@@ -2438,7 +2438,7 @@ class AccountManagerUIQt(QMainWindow): # Main Window
         self._mr_dl_btn = QPushButton("Download Handle64")
         self._mr_dl_btn.setToolTip(
             "Downloads handle64.exe from Sysinternals (Microsoft)\n"
-            "and saves it to the AccountManagerData folder."
+            "and saves it to the PurpleMulti data folder."
         )
         self._mr_dl_btn.clicked.connect(self._on_mr_download_handle64)
         row_h64.addWidget(self._mr_dl_btn)

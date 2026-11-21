@@ -8,7 +8,7 @@ from utils import app_paths
 
 
 def default_dir():
-    return os.path.join(app_paths.get_project_root(), "AccountManagerData")
+    return os.path.join(os.environ["LOCALAPPDATA"], "PurpleMulti")
 
 
 class ResolveDataDirTests(unittest.TestCase):
@@ -16,8 +16,18 @@ class ResolveDataDirTests(unittest.TestCase):
         self.env = self.enterContext(patch.dict(os.environ))
         os.environ.pop(app_paths.DATA_DIR_ENV, None)
 
-    def test_default_folder_is_next_to_the_application(self):
-        self.assertEqual(app_paths.resolve_data_dir(), default_dir())
+    def test_default_folder_is_in_local_app_data(self):
+        with patch.object(app_paths, "get_project_root", return_value=tempfile.gettempdir() + "/no-legacy-here"):
+            self.assertEqual(app_paths.resolve_data_dir(), default_dir())
+
+    def test_a_portable_folder_with_accounts_next_to_the_app_is_kept(self):
+        with tempfile.TemporaryDirectory() as root:
+            with patch.object(app_paths, "get_project_root", return_value=root):
+                legacy = os.path.join(root, "AccountManagerData")
+                os.makedirs(legacy)
+                self.assertEqual(app_paths.resolve_data_dir(), default_dir())  # empty: not a data folder
+                open(os.path.join(legacy, "saved_accounts.json"), "w").close()
+                self.assertEqual(app_paths.resolve_data_dir(), legacy)
 
     def test_blank_override_uses_the_default(self):
         for value in ("", "   "):
