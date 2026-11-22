@@ -878,6 +878,7 @@ def import_user_pass(manager, pairs: list[tuple[str, str]], on_done: Callable[[b
                     amount=len(batch),
                     javascript_list=scripts,
                     browser=browser,
+                    labels=[username for username, _password in batch],
                 ))
                 new_names = set(manager.accounts.keys()) - existing_before
                 if new_names:

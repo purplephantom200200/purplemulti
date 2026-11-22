@@ -28,9 +28,11 @@ class FakeManager:
     def __init__(self):
         self.accounts = {}
         self.batches = []
+        self.labels = []
 
-    def add_account(self, amount, javascript_list, browser):
+    def add_account(self, amount, javascript_list, browser, labels=None):
         self.batches.append(amount)
+        self.labels.append(labels)
         for index in range(amount):
             self.accounts[f"user{len(self.accounts)}"] = {}
         return OperationResult.success()
@@ -47,6 +49,7 @@ class ImportUsesTheSettingTests(unittest.TestCase):
                 patch.object(actions, "get_browser_result", return_value=OperationResult.success(data={"browser": "chrome"})):
             actions.import_user_pass(manager, pairs, lambda ok, message: (outcome.append((ok, message)), finished.set()))
             self.assertTrue(finished.wait(10))
+        self.manager = manager
         return manager.batches, outcome[0]
 
     def test_default_opens_five_at_a_time(self):
@@ -57,6 +60,10 @@ class ImportUsesTheSettingTests(unittest.TestCase):
     def test_lower_setting_opens_fewer_browsers(self):
         self.assertEqual(self.run_import(5, 2)[0], [2, 2, 1])
         self.assertEqual(self.run_import(3, 1)[0], [1, 1, 1])
+
+    def test_each_browser_is_labelled_with_its_username(self):
+        self.run_import(3, 2)
+        self.assertEqual(self.manager.labels, [["name0", "name1"], ["name2"]])
 
     def test_out_of_range_setting_is_clamped(self):
         self.assertEqual(self.run_import(7, 99)[0], [5, 2])

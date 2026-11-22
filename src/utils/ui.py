@@ -368,6 +368,7 @@ class _Bridge(QObject):
     roblox_settings_path_changed = Signal(object)
     console_wakeup = Signal()
     auto_backup_done = Signal(object) # OperationResult from an automatic or manual auto-backup run
+    login_challenge = Signal(str) # account label whose login browser shows a verification
 
 
 SKIPPED_UPDATE_SETTING = "skipped_update_version"
@@ -1057,6 +1058,8 @@ class AccountManagerUIQt(QMainWindow): # Main Window
         self._bridge.update_check_finished.connect(self._on_update_check_finished)
         self._bridge.join_place_resolved.connect(self._on_join_place_resolved)
         self._bridge.auto_backup_done.connect(self._on_auto_backup_done)
+        self._bridge.login_challenge.connect(self._on_login_challenge)
+        self.manager.login_challenge_callback = self._bridge.login_challenge.emit
         self._bridge.recent_game_saved.connect(self._refresh_recent_games)
         self._bridge.favorite_place_resolved.connect(self._on_favorite_place_resolved)
         self._bridge.headless_update.connect(self._on_headless_update)
@@ -1203,6 +1206,7 @@ class AccountManagerUIQt(QMainWindow): # Main Window
         self._theme_manager.register(self)
         self._theme_manager.failed.connect(self._on_theme_failed)
         self._init_auto_lock()
+        self._toast = ui_kit.Toast(self.centralWidget())
         print("[INFO] UI ready")
 
 
@@ -7122,6 +7126,17 @@ class AccountManagerUIQt(QMainWindow): # Main Window
                 on_done=self._on_add_done,
                 javascript=dlg.js_value,
             )
+
+    def _on_login_challenge(self, label: str) -> None:
+        message = (
+            f"Roblox asks for a verification for {label}. Complete it in the browser window "
+            "that just came to the front: the account is added once you are signed in."
+        )
+        self._toast.show_message(message, seconds=15)
+        QApplication.alert(self, 0)
+        tray = getattr(self, "_tray_icon", None)
+        if tray is not None and not self.isVisible():
+            tray.showMessage("Verification needed", message, QSystemTrayIcon.MessageIcon.Information, 10_000)
 
     def _on_add_done(self, success: bool, result):
         if isinstance(result, OperationResult):

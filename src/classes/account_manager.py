@@ -43,6 +43,10 @@ class HardwareAccountDecryptionError(AccountManagerStartupError):
 class AccountDataError(AccountManagerStartupError):
     pass
 
+# Extra time to solve a verification shown during a browser login.
+LOGIN_CHALLENGE_EXTRA_SECONDS = 300
+
+
 class RobloxAccountManager:
     
     def __init__(self, password=None):
@@ -63,6 +67,9 @@ class RobloxAccountManager:
         self._accounts_lock = threading.RLock()
         self._browser_setup_lock = threading.Lock()
         self._pre_launch_hook = None
+        # Called with an account label when a login browser shows a verification.
+        # Runs on the login worker thread.
+        self.login_challenge_callback = None
         # Session-only launch evidence; never persist cookies or launch URLs.
         self._launch_records: dict[str, tuple[str, float]] = {}
         
@@ -591,7 +598,26 @@ class RobloxAccountManager:
         # Preserve the old method for external callers while using the browser factory.
         return self.setup_browser_driver(browser_path=browser_path)
     
-    def wait_for_login(self, driver, timeout=300):
+    def _bring_browser_to_front(self, driver) -> None:
+        # Minimizing then restoring the same rectangle is the reliable way to raise a
+        # browser window from another process on Windows.
+        try:
+            rect = driver.get_window_rect()
+            driver.minimize_window()
+            driver.set_window_rect(**rect)
+        except Exception as exc:
+            print(f"[WARNING] Could not bring the login browser to the front: {exc}")
+
+    def _notify_login_challenge(self, label: str) -> None:
+        callback = self.login_challenge_callback
+        if callback is None:
+            return
+        try:
+            callback(label)
+        except Exception as exc:
+            print(f"[WARNING] Could not report the login verification: {exc}")
+
+    def wait_for_login(self, driver, timeout=300, label=None):
         from selenium.common.exceptions import JavascriptException, WebDriverException
         print("Please log into your Roblox account")
         
@@ -664,23 +690,49 @@ class RobloxAccountManager:
         except Exception as e:
             print(f"[ERROR] Could not inject detection script: {e}")
         
-        start_time = time.time()
+        deadline = time.time() + timeout
+        label = label or "this account"
+        challenge_seen = False
+        challenge_extended = False
         last_debug_time = 0
         check_count = 0
         last_url = ""
         
+        # "challenge" is true while Roblox shows a visible verification: a CAPTCHA
+        # frame or box, or the two-step verification page.
         state_script = (
             "return {href: location.href,"
             " alive: !!window.browserDetect,"
-            " detected: !!(window.browserDetect && window.browserDetect.detected)};"
+            " detected: !!(window.browserDetect && window.browserDetect.detected),"
+            " challenge: (function () {"
+            "   const selector = 'iframe[src*=\"arkoselabs\"], iframe[src*=\"funcaptcha\"],"
+            " iframe[src*=\"hcaptcha\"], [id*=\"captcha\" i], [class*=\"captcha\" i],"
+            " [class*=\"challenge\" i], [class*=\"two-step\" i], [class*=\"twostep\" i]';"
+            "   for (const el of document.querySelectorAll(selector)) {"
+            "     const box = el.getBoundingClientRect();"
+            "     if (box.width > 40 && box.height > 40) { return true; }"
+            "   }"
+            "   return /twostep|two-step|challenge/.test(location.href.toLowerCase());"
+            " })()};"
         )
         logged_in_paths = ['/home', '/games', '/catalog', '/avatar', '/discover', '/friends',
                            '/profile', '/groups', '/develop', '/create']
-        while time.time() - start_time < timeout:
+        while time.time() < deadline:
             try:
                 check_count += 1
                 state = driver.execute_script(state_script) or {}
                 current_url = str(state.get("href", "")).lower()
+
+                challenge = bool(state.get("challenge"))
+                if challenge and not challenge_seen:
+                    print(f"[INFO] Roblox asks for a verification for {label}. Complete it in the browser.")
+                    self._bring_browser_to_front(driver)
+                    self._notify_login_challenge(label)
+                    if not challenge_extended:
+                        # Give the person time to solve it, once per browser.
+                        challenge_extended = True
+                        deadline = max(deadline, time.time() + LOGIN_CHALLENGE_EXTRA_SECONDS)
+                challenge_seen = challenge
 
                 if current_url != last_url:
                     last_url = current_url
@@ -812,7 +864,7 @@ class RobloxAccountManager:
             print(f"[ERROR] Error extracting user info: {e}")
             return None, None, None, None, ""
     
-    def add_account(self, amount=1, website="https://www.roblox.com/login", javascript="", javascript_list=None, browser=None, browser_path=None, password_list=None, window_slot=None, window_slot_count=None):
+    def add_account(self, amount=1, website="https://www.roblox.com/login", javascript="", javascript_list=None, browser=None, browser_path=None, password_list=None, window_slot=None, window_slot_count=None, labels=None):
         # Add accounts through one or more browser instances.
         # javascript_list and password_list map each value to the same browser index.
         if javascript_list:
@@ -925,7 +977,12 @@ class RobloxAccountManager:
             def wait_for_instance(driver_index):
                 driver = drivers[driver_index]
                 try:
-                    if self.wait_for_login(driver):
+                    label = (
+                        labels[driver_index]
+                        if labels and driver_index < len(labels) and labels[driver_index]
+                        else f"browser {driver_index + 1}"
+                    )
+                    if self.wait_for_login(driver, label=label):
                         username, cookie, user_id, password, avatar_url = self.extract_user_info(driver)
 
                         if username and cookie:

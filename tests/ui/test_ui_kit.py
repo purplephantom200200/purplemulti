@@ -110,6 +110,26 @@ class UiKitTests(unittest.TestCase):
         self.assertIsNot(plain, lettered)
         self.assertIs(lettered, manager.placeholder_pixmap(24, "AB"))
 
+    def test_toast_shows_at_the_bottom_then_hides_itself(self):
+        window = QWidget()
+        self.addCleanup(window.close)
+        window.resize(800, 500)
+        toast = ui_kit.Toast(window)
+        window.show()
+        self.app.processEvents()
+        self.assertFalse(toast.isVisible())
+        toast.show_message("Roblox asks for a verification.", seconds=5)
+        self.assertTrue(toast.isVisible())
+        self.assertEqual(toast.text(), "Roblox asks for a verification.")
+        self.assertEqual(toast.property("tone"), "warning")
+        self.assertLessEqual(toast.geometry().bottom(), window.height() - ui_kit.Toast.MARGIN + 1)
+        self.assertAlmostEqual(toast.geometry().center().x(), window.width() // 2, delta=2)
+        window.resize(1000, 600)
+        self.app.processEvents()
+        self.assertAlmostEqual(toast.geometry().center().x(), 500, delta=2)
+        toast._timer.timeout.emit()
+        self.assertFalse(toast.isVisible())
+
     def test_soft_status_tones_exist_for_every_theme_surface(self):
         colors = theme_runtime.colors()
         for role in ('SUCCESS', 'WARNING', 'ERROR'):

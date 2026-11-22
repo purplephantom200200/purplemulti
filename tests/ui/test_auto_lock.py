@@ -159,6 +159,22 @@ class AutoLockWindowTests(unittest.TestCase):
         self.assertFalse(window._locked)
 
 
+class LoginChallengeNoticeTests(unittest.TestCase):
+    """A verification in a login browser shows a toast and flashes the taskbar."""
+
+    setUpClass = AutoLockWindowTests.setUpClass
+    window = AutoLockWindowTests.window
+
+    def test_the_window_shows_who_needs_a_verification(self):
+        window = self.window()
+        self.assertIs(window.manager.login_challenge_callback.__self__, window._bridge.login_challenge)
+        with patch.object(ui.QApplication, "alert") as alert:
+            window._on_login_challenge("PurpleFox")
+        self.assertTrue(window._toast.isVisibleTo(window))
+        self.assertIn("PurpleFox", window._toast.text())
+        alert.assert_called_once_with(window, 0)
+
+
 class SessionLockMessageTests(unittest.TestCase):
     def message(self, code, param):
         msg = wintypes.MSG()

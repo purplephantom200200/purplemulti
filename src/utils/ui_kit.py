@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import re
 
-from PySide6.QtCore import QEvent, QObject, Qt
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer
 from PySide6.QtWidgets import (
     QAbstractButton, QAbstractScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
     QVBoxLayout, QWidget,
@@ -235,4 +235,43 @@ class EmptyState(QWidget):
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched is self._viewport and event.type() == QEvent.Type.Resize:
             self.setGeometry(self._viewport.rect())
+        return False
+
+
+class Toast(QLabel):
+    """Short message at the bottom of a window that hides itself; never takes focus."""
+
+    MAX_WIDTH = 460
+    MARGIN = 24
+
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
+        self.setObjectName("toast")
+        self.setWordWrap(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.timeout.connect(self.hide)
+        parent.installEventFilter(self)
+        self.hide()
+
+    def show_message(self, text: str, seconds: int = 10, tone: str = "warning") -> None:
+        self.setText(text)
+        self.setProperty("tone", tone)
+        _repolish(self)
+        self.setFixedWidth(min(self.MAX_WIDTH, max(200, self.parentWidget().width() - 2 * self.MARGIN)))
+        self.adjustSize()
+        self._place()
+        self.show()
+        self.raise_()
+        self._timer.start(seconds * 1000)
+
+    def _place(self) -> None:
+        area = self.parentWidget().rect()
+        self.move((area.width() - self.width()) // 2, area.height() - self.height() - self.MARGIN)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if watched is self.parentWidget() and event.type() == QEvent.Type.Resize and self.isVisible():
+            self._place()
         return False

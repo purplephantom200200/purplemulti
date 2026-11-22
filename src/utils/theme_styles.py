@@ -55,6 +55,11 @@ CONTROLS = f"""
             QLabel#caption {{ color: {MUTED}; font-size: 12px; }}
             QLabel#emptyTitle {{ font-size: 14px; font-weight: 600; }}
             QLabel#formError {{ color: {ERROR}; font-size: 12px; }}
+            QLabel#toast {{
+                background: {RAISED}; border: 1px solid {LINE}; border-radius: 10px;
+                padding: 10px 14px; font-size: 13px;
+            }}
+            QLabel#toast[tone="warning"] {{ border-color: {WARNING}; }}
             QWidget#emptyState, QWidget#emptyState QLabel {{ background: transparent; }}
 
             QPushButton#optionCard {{
